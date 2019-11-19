@@ -1,0 +1,17 @@
+{
+  "filename": "src\\asyncserver.cpp",
+  "compiledate": "Nov 19 2019",
+  "compiletime": "02:38:59",
+  "chipid": "549E0FC40A24",
+  "chiprev": 1,
+  "cpufreq": 240,
+  "sketchsize": 1117680,
+  "freesketchspace": 1310720,
+  "flashchipmode": true,
+  "flashchipsize": 4194304,
+  "flashchipspeed": 40000000,
+  "sdkver": "v3.2.3-14-gd3e562907",
+  "resetreasoncpu0": "RTC Watch dog reset digital core and rtc module",
+  "resetreasoncpu1": "for APP CPU, reseted by PRO CPU",
+  "maker": "Muhammad Iqbal"
+}

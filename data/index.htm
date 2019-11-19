@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+  <!-- Basic Page Needs
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <meta charset="utf-8">
+  <title>Date & Time</title>
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <!-- Mobile Specific Metas
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- FONT
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <!--<link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">-->
+
+  <!-- CSS
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <link rel="stylesheet" href="bulma.min.css">
+
+  <style>
+    div.smoothie-chart-tooltip {
+      background: #444;
+      padding: 1em;
+      margin-top: 20px;
+      font-family: consolas;
+      color: white;
+      font-size: 10px;
+      pointer-events: none;
+    }
+  </style>
+
+
+  <!-- Favicon
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <link rel="icon" type="image/png" href="favicon.png">
+
+</head>
+
+<body>
+
+
+
+  <section class="hero is-info">
+    <!-- Hero head: will stick at the top -->
+    <div class="hero-head">
+      <nav class="navbar">
+        <div class="container">
+          <div class="navbar-brand">
+            <!--<a class="navbar-item">-->
+            <!--  <img src="https://bulma.io/images/bulma-type-white.png" alt="Logo">-->
+            <!--</a>-->
+            <span class="navbar-burger burger" data-target="navbarMenuHeroA">
+              <span></span>
+              <span></span>
+              <span></span>
+            </span>
+          </div>
+          <div id="navbarMenuHeroA" class="navbar-menu">
+            <div class="navbar-end">
+              <a class="navbar-item is-active" href="/">
+                Home
+              </a>
+              <a class="navbar-item" href="confignetwork.html">
+                Network
+              </a>
+              <a class="navbar-item" href="status.html">
+                Status
+              </a>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </div>
+
+    <!-- Hero content: will be in the middle -->
+    <div class="hero-body">
+      <div class="container has-text-centered">
+        <h1 id="jumboCountdown" class="title is-size-3">
+          Sensor readings
+        </h1>
+        <h2 id="jumboSensorReading" class="title is-size-1">
+          --
+        </h2>
+      </div>
+    </div>
+
+  </section>
+
+  <div id="modalDisconnected" class="modal">
+    <div class="modal-background"></div>
+    <div class="modal-content">
+      <!-- Any other Bulma elements you want -->
+      <article id="status_box" class="tile has-text-centered is-child notification is-danger is-marginless">
+        <p class="subtitle is-5 is-marginless">DISCONNECTED</p>
+        <p>Refresh the browser to reconnect.</p>
+      </article>
+    </div>
+    <button class="modal-close is-large" aria-label="close"></button>
+  </div>
+
+
+
+  <section class="section">
+    <div class="container">
+      
+      <!--<canvas id="mycanvas" width="400" height="100"></canvas>-->
+      <canvas id="smoothie-chart" style="width:100%; height:200px"></canvas>
+
+
+
+
+    </div>
+  </section>
+
+
+
+  <script type="text/javascript" src="smoothie.js"></script>
+  <script>
+  
+    var method = "WEBSOCKET";
+  
+    window.onload = function () {
+      if (method === "HTTP") {
+        // getConfigValues("config/location");
+        // getConfigValues("/status/sholatschedule");
+        // setInterval(function(){ getConfigValues("/status/sholatschedule") }, 1000);      
+      }
+      else if (method === "WEBSOCKET") {
+        wsOpen();
+        setInterval(function(){ wsSendUrl() }, 1000);
+        // startConnectionTimer();
+      } 
+
+      // wsOpen();
+      // startPolling();
+      // startConnectionTimer();
+    }
+    
+    
+    var smoothie = new SmoothieChart({
+      responsive: true,
+      millisPerPixel:1000,
+      grid: { strokeStyle:'rgb(125, 0, 0)',
+              fillStyle:'rgb(60, 0, 0)',
+              lineWidth: 1,
+              millisPerLine: 60000,
+              verticalSections: 6, },
+      // labels: { fillStyle:'rgb(60, 0, 0)' },
+      timestampFormatter:SmoothieChart.timeFormatter,
+      maxValue:100,
+      minValue:0,
+      interpolation:'linear',
+      tooltip:true
+    }),
+    canvas = document.getElementById('smoothie-chart');
+    
+    smoothie.streamTo(canvas, 0 /*delay*/);
+    
+    // Data
+    var line1 = new TimeSeries();
+    // var line2 = new TimeSeries();
+    
+    // Add a random value to each line every second
+    // setInterval(function() {
+    //   line1.append(new Date().getTime(), Math.random());
+    //   line2.append(new Date().getTime(), Math.random());
+    // }, 1000);
+    
+    smoothie.addTimeSeries(line1,
+      { strokeStyle:'rgb(0, 255, 0)', fillStyle:'rgba(0, 255, 0, 0.4)', lineWidth:3 });
+    // smoothie.addTimeSeries(line2,
+    //   { strokeStyle:'rgb(255, 0, 255)', fillStyle:'rgba(255, 0, 255, 0.3)', lineWidth:3 });
+    
+
+
+
+    document.addEventListener('DOMContentLoaded', function () {
+
+      // Get all "navbar-burger" elements
+      var $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
+
+      // Check if there are any navbar burgers
+      if ($navbarBurgers.length > 0) {
+        // Add a click event on each of them
+        $navbarBurgers.forEach(function ($el) {
+          $el.addEventListener('click', function () {
+
+            // Get the target from the "data-target" attribute
+            var target = $el.dataset.target;
+            var $target = document.getElementById(target);
+
+            // Toggle the class on both the "navbar-burger" and the "navbar-menu"
+            $el.classList.toggle('is-active');
+            $target.classList.toggle('is-active');
+
+          });
+        });
+      }
+    });
+
+    function load(e, t, n) {
+      if ("js" == t) {
+        var a = document.createElement("script");
+        a.src = e,
+          a.type = "text/javascript",
+          a.async = !1,
+          a.onload = function () { n() },
+          document.getElementsByTagName("head")[0].appendChild(a)
+      } else if ("css" == t) {
+        var a = document.createElement("link");
+        a.href = e,
+          a.rel = "stylesheet",
+          a.type = "text/css",
+          a.async = !1,
+          a.onload = function () { n() },
+          document.getElementsByTagName("head")[0].appendChild(a)
+      }
+    }
+
+    var ws;
+    var retries;
+    var sendPingVar;
+    var killed = false; // true if this client has closed the connection by its self (as instructed by esp)
+    var startSecond;
+    var connectionTimerVar;
+
+    function getConfigValues(url) {
+      var xhr = new XMLHttpRequest();
+      xhr.open("GET", url, true);
+      if (url === "/status/sholatschedule") {
+        xhr.addEventListener("load", reqListenerSholat);
+      }
+      else if (url === "config/location") {
+        xhr.addEventListener("load", reqListenerLocation);
+      }
+      xhr.timeout = 500;
+      xhr.ontimeout = function (e) {
+        console.log("timeout");
+        xhr.abort();
+      };
+      xhr.send();
+    }
+
+    function reqListenerLocation() {
+      //console.log(this.responseText);
+      let json = JSON.parse(this.responseText);
+      console.log(json);
+      document.getElementById("jumboLoc").textContent = json.city;
+    }
+
+    function showDisconnected() {
+      var sbox = document.getElementById('modalDisconnected');
+      sbox.className = "modal is-active";
+      ws.close();
+
+      console.log("show DISCONNECTED");
+    }
+
+    function setMsg(cls, text) {
+      var sbox = document.getElementById('status_box');
+      sbox.className = "siimple-alert siimple-alert--" + cls;
+      sbox.textContent = text;
+      //console.log(text);
+    }
+    
+    function wsSendUrl() {
+      var obj = new Object();
+      // obj.url = window.location.pathname;
+      obj.url = 'thermocouple';
+      var myJSON = JSON.stringify(obj);
+      console.log(myJSON);
+      // ws.send(myJSON);
+      ws.send(obj.url);
+    }
+    
+    function wsOpen() {
+      if (ws === undefined || ws.readyState != 0) {
+        if (retries) {
+          // setMsg("red", "Connection timeout, retrying..");
+        }
+        else {
+          // setMsg("blue", "Connecting..");
+        }
+        ws = new WebSocket("ws://" + location.host + "/ws");
+        ws.binaryType = 'arraybuffer';
+        ws.onopen = function (evt) {
+          console.log("WebSocket is open. Connected to " + evt.target.url, evt);
+          retries = 0;
+          // setMsg("green", "Connected");
+          //ws.send('Hallo from Browser :-) ' + new Date());
+          // setInterval(function(){ sendPing() }, 5000);
+          wsSendUrl();
+        };
+        ws.onclose = function (evt) {
+          //console.log("WebSocket CLOSE ", evt);
+          // setMsg("red", "Disconnected");
+          if (ws.readyState == 3) {
+            // showDisconnected();
+            setTimeout(function () { showDisconnected(); }, 1000);
+          }
+          console.log("WebSocket close. Code: " + evt.code + ", Reason: " + evt.reason);
+          clearInterval(sendPingVar); console.log(clearInterval.name);
+          clearInterval(connectionTimerVar); console.log(clearInterval.name);
+        };
+        ws.onerror = function (error) {
+          console.log("WebSocket ERROR ", error);
+          clearInterval(sendPingVar); console.log(clearInterval.name);
+          clearInterval(connectionTimerVar); console.log(clearInterval.name);
+          // setMsg("red", "Connection error!");
+        };
+        ws.onmessage = function (evt) { onMessage(evt); };
+        // onMessage(evt);
+        //wsOpenStream();
+        //retries = 0;
+      }
+    }
+    function onMessage(evt) {
+      retries = 0;
+      // console.log(evt.data);
+
+      if (isJSON(evt.data)) {
+        var jsonData = JSON.parse(evt.data);
+        console.log(evt.data);
+        if (jsonData.temp) {
+          line1.append(new Date().getTime(), jsonData.temp);
+          document.getElementById("jumboSensorReading").textContent = jsonData.temp + ' °C';
+        }
+      }
+      else {
+        console.log(evt.data);
+      }
+    }
+    function wsWrite(data) {
+      if (killed == false) {
+        console.log('retries = ', retries)
+        if (ws.readyState == 3 || retries++ > 5)
+          wsOpen();
+      }
+      // if (ws.readyState == 3 || retries++ > 5)
+      // 	wsOpen();
+      // else if (ws.readyState == 1)
+      // 	ws.send(data);
+    }
+    
+    function gpio() {
+      if (document.getElementById('led-switch').checked)
+        wsWrite('E');
+      else
+        wsWrite('D');
+    }
+
+    // https://stackoverflow.com/questions/3710204/how-to-check-if-a-string-is-a-valid-json-string-in-javascript-without-using-try
+    function isJSON(str) {
+      try {
+        return (JSON.parse(str) && !!str);
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function startPolling() {
+      console.log(startPolling.name);
+      // setInterval(function() { wsWrite('A'); }, 1000);
+      sendPingVar = setInterval(function () { sendPing(); }, 60000);
+    }
+    function startConnectionTimer() {
+      //console.log(startPolling.name);
+      // setInterval(function() { wsWrite('A'); }, 1000);
+      document.getElementById("connTime").textContent = '0:00:00';
+      var date1 = new Date();
+      startSecond = date1.valueOf() / 1000;
+      connectionTimerVar = setInterval(function () { connectionTimer(); }, 1000);
+    }
+
+    function sendPing() {
+      ws.send('ping'); console.log(sendPing.name);
+    }
+    function connectionTimer() {
+      var date2 = new Date();
+      var current = date2.valueOf() / 1000;
+      var timeDiff = current - startSecond;
+      hours = Math.floor(timeDiff / 3600);
+      timeDiff %= 3600;
+      minutes = Math.floor(timeDiff / 60);
+      seconds = Math.floor(timeDiff % 60);
+      document.getElementById("connTime").textContent = hours + ':' + ('0' + minutes).slice(-2) + ':' + ('0' + seconds).slice(-2);
+      // console.log( hours +':'+ ('0'+minutes).slice(-2) +':'+ ('0'+seconds).slice(-2) );
+    }
+
+  </script>
+</body>
+
+</html>
